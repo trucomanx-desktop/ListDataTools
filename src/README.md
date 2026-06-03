@@ -2,7 +2,7 @@
 
 A set of program to list data.
 
-![logo](screenshot.png)
+![logo](https://raw.githubusercontent.com/trucomanx-desktop/ListDataTools/main/screenshot.png)
 
 ## 1. Installing
 
@@ -24,7 +24,7 @@ ldt-files
 ```
 ## 2. More information
 
-If you want more information go to [doc](https://github.com/trucomanx-desktop/ListDataTools/blob/main/doc) directory
+If you want more information go to [doc](https://github.com/trucomanx-desktop/ListDataTools/blob/main/doc) directory.
 
 ## 3. Buy me a coffee
 
