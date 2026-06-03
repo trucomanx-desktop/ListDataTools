@@ -32,7 +32,7 @@ os.environ["QT_QPA_PLATFORM_PLUGIN_PATH"] = QLibraryInfo.location(
     QLibraryInfo.PluginsPath
 )
 
-from list_data_tools.program import main
+from list_data_tools.program_files import main
 
 if __name__ == "__main__":
     main()
