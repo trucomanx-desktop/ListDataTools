@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "list_data_tools"
+version = "0.1.0"
+description = "A set of program to list data."
+readme = "README.md"
+authors = [{name = "Fernando Pujaico Rivera", email = "fernando.pujaico.rivera@gmail.com"}]
+maintainers = [{name = "Fernando Pujaico Rivera", email = "fernando.pujaico.rivera@gmail.com"}]
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "GPL-3.0-only WITH Classpath-Exception-2.0 OR BSD-3-Clause"
+license-files = ["LICENSE"]
+keywords = ["images", "files"]
+dependencies = [
+    "PyQt5"
+]
+
+[project.urls]
+"Bug Reports" = "https://github.com/trucomanx-desktop/ListDataTools/issues"
+"Funding" = "https://trucomanx.github.io/en/funding.html"
+"Documentation" = "https://github.com/trucomanx-desktop/ListDataTools/tree/main/doc"
+"Source" = "https://github.com/trucomanx-desktop/ListDataTools"
+
+[project.scripts]
+"ldt-files" = "list_data_tools.program_files:main"
+
+[tool.setuptools]
+packages = ["list_data_tools", "list_data_tools.modules"]
+
+[tool.setuptools.package-data]
+"list_data_tools" = ["icons/*.png", "icons/*.svg"]
