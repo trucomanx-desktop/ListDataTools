@@ -3,6 +3,7 @@
 __version__ = "0.1.0"
 __package__ = "list_data_tools"
 __program_files__ = "ldt-files"
+__program_points__ = "ldt-points"
 __author__ = "Fernando Pujaico Rivera"
 __email__  = "fernando.pujaico.rivera@gmail.com"
 __description__ = "A set of program to list data."

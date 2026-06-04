@@ -26,7 +26,7 @@ from list_data_tools.desktop import create_desktop_file, create_desktop_director
 CONFIG_PATH = os.path.join( os.path.expanduser("~"),
                             ".config", 
                             about.__package__, 
-                            "config.json" )
+                            f"config_(about.__program_files__).json" )
 
 DEFAULT_CONTENT={
     "menubar_menu": "&Menu",
@@ -95,7 +95,7 @@ class MainWindow(QMainWindow):
         
         ## Icon
         # Get base directory for icons
-        self.icon_path = resource_path("icons", "logo.png")
+        self.icon_path = resource_path("icons", "listfiles.svg")
         self.setWindowIcon(QIcon(self.icon_path)) 
 
         self.SORTDATATYPE = 0  # 0 = SORT_LEX, 1 = SORT_LENGTH
