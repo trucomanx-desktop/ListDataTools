@@ -2,6 +2,7 @@
 
 import os
 import sys
+import glob
 import signal
 import subprocess
 
@@ -160,30 +161,24 @@ class MainWindow(QMainWindow):
         self.pushButton_search.setIconSize(QSize(32, 32))
         self.pushButton_search.clicked.connect(self.on_pushButton_search_clicked)
         layout.addWidget(self.pushButton_search)
-        
-        # === Botões de ação ===
-        btn_layout = QHBoxLayout()
+
 
         # === Tabela ===
         self.tableWidget = QTableWidget()
+
         self.tableWidget.setColumnCount(1)
         self.tableWidget.setHorizontalHeaderLabels(["filepath"])
-        self.tableWidget.horizontalHeader().setStretchLastSection(True)
+
+        self.tableWidget.setSortingEnabled(True)
+
         self.tableWidget.setSelectionBehavior(QTableWidget.SelectRows)
         self.tableWidget.setEditTriggers(QTableWidget.NoEditTriggers)
-        btn_layout.addWidget(self.tableWidget)
 
-        #
-        self.pushButton_deleterow = QPushButton("Remove rows")
-        self.pushButton_deleterow.setIcon(QIcon(resource_path("icons", "edit-rem.png")))
-        #self.pushButton_deleterow.setIconSize(QSize(24, 24))
-        self.pushButton_deleterow.clicked.connect(self.on_pushButton_deleterow_clicked)
-        btn_layout.addWidget(self.pushButton_deleterow)
+        self.tableWidget.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.tableWidget.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         
 
-
-        layout.addLayout(btn_layout)
-
+        layout.addWidget(self.tableWidget)
 
 
         # === Rodapé com número de arquivos ===
@@ -193,6 +188,13 @@ class MainWindow(QMainWindow):
         self.label_nfiles = QLabel("0")
         self.label_nfiles.setStyleSheet("font-weight: bold;")
         footer.addWidget(self.label_nfiles)
+        
+        
+        self.pushButton_deleterow = QPushButton("Remove rows")
+        self.pushButton_deleterow.setIcon(QIcon(resource_path("icons", "edit-rem.png")))
+        self.pushButton_deleterow.clicked.connect(self.on_pushButton_deleterow_clicked)
+        self.pushButton_deleterow.setIconSize(QSize(32, 32))
+        footer.addWidget(self.pushButton_deleterow)
         
         footer.addStretch()
         
@@ -271,16 +273,53 @@ class MainWindow(QMainWindow):
         return n
 
     def search_files(self):
-        # Aqui você deve implementar a lógica de busca usando pdsdatafunc ou outra biblioteca
-        # Por enquanto, deixo como placeholder
-        rootdir = self.lineEdit_rootdir.text()
-        filter_ = self.lineEdit_filter.text()
+        """Busca recursiva de arquivos conforme o filtro"""
+        rootdir = self.lineEdit_rootdir.text().strip()
+        filter_pattern = self.lineEdit_filter.text().strip()
 
-        # Exemplo placeholder:
+        if not rootdir or not os.path.isdir(rootdir):
+            QMessageBox.warning(self, "Erro", "Diretório raiz inválido ou não existe!")
+            return
+
+        if not filter_pattern:
+            filter_pattern = "*.*"
+
+        if not filter_pattern.startswith("*"):
+            filter_pattern = f"*{filter_pattern}"
+
+        # Limpa a tabela e desativa ordenação temporariamente
+        self.tableWidget.setSortingEnabled(False)  # Evita problemas durante preenchimento
         self.tableWidget.setRowCount(0)
-        # ... sua lógica de busca aqui ...
 
-        self.set_nfiles()
+        files_found = []
+
+        try:
+            search_pattern = os.path.join(rootdir, "**", filter_pattern)
+            files_found = glob.glob(search_pattern, recursive=True)
+            files_found = [f for f in files_found if os.path.isfile(f)]
+
+            # Ordenação inicial conforme configuração do programa
+            if self.SORTDATATYPE == 0:  # SORT_LEX
+                files_found.sort(key=lambda x: x.lower())
+            elif self.SORTDATATYPE == 1:  # SORT_LENGTH
+                files_found.sort(key=lambda x: (len(os.path.basename(x)), os.path.basename(x).lower()))
+
+            # Preenche a tabela
+            self.tableWidget.setRowCount(len(files_found))
+
+            for i, filepath in enumerate(files_found):
+                item = QTableWidgetItem(filepath)
+                item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+                self.tableWidget.setItem(i, 0, item)
+            self.tableWidget.resizeColumnToContents(0)
+
+        except Exception as e:
+            QMessageBox.critical(self, "Erro na busca", f"Ocorreu um erro:\n{str(e)}")
+
+        finally:
+            self.tableWidget.setSortingEnabled(True)  # Reativa ordenação
+
+            self.set_nfiles()
 
     # Slots
     def on_pushButton_search_clicked(self):
