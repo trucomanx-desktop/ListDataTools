@@ -15,10 +15,6 @@ from PyQt5.QtCore import Qt, QDir, QSize, QUrl
 from PyQt5.QtGui import QIcon, QDesktopServices
 
 
-# Import do diálogo
-from list_data_tools.dialog_configuration import DialogConfiguration
-
-
 import list_data_tools.about as about
 import list_data_tools.modules.configure as configure 
 from list_data_tools.modules.resources import resource_path
@@ -32,7 +28,11 @@ CONFIG_PATH = os.path.join( os.path.expanduser("~"),
                             about.__package__, 
                             "config.json" )
 
-DEFAULT_CONTENT={   
+DEFAULT_CONTENT={
+    "menubar_menu": "&Menu",
+    "menubar_about": "Abo&ut",
+    "toolbar_save": "&Save files",
+    "toolbar_save_tooltip": "Save the *.listfiles file",
     "toolbar_configure": "Configure",
     "toolbar_configure_tooltip": "Open the configure Json file of program GUI",
     "toolbar_about": "About",
@@ -57,6 +57,19 @@ DEFAULT_CONTENT={
     "output_button_tooltip": "Select the file where the files will be stored",
     "search_button": "Search",
     "search_button_tooltip": "Start the search for files.",
+    "nfiles_label": "Number of files:",
+    "nfiles_tooltip": "Number of files in the list of files",
+    "deleterow_button": "Remove rows",
+    "deleterow_button_tooltip": "Delete a selected file path from the list of files.",
+    "saveexit_button": "Save and Exit",
+    "saveexit_button_tooltip": "Save files and Exit",
+    "msg_error": "Error",
+    "msg_error_invalid_dir": "Diretório raiz inválido ou não existe!",
+    "msg_select_root": "Select root directory",
+    "msg_select_outfile": "Select or define an output filename",
+    "msg_error_no_file": "Output file not defined!",
+    "msg_files_written": "files was written in",
+    "msg_sucess": "Success",
 }
 
 configure.verify_default_config(CONFIG_PATH,default_content=DEFAULT_CONTENT)
@@ -94,9 +107,9 @@ class MainWindow(QMainWindow):
         self.dis_outfile = False
 
         self.setup_ui()
-        self.create_actions()
-        self.create_menus()
         self.create_toolbar()
+        self.create_menus()
+
 
     def setup_ui(self):
         # Central Widget
@@ -184,21 +197,26 @@ class MainWindow(QMainWindow):
         # === Rodapé com número de arquivos ===
         footer = QHBoxLayout()
         
-        footer.addWidget(QLabel("Number of files:"))
+
+        
+        footer.addWidget(QLabel(CONFIG["nfiles_label"]))
         self.label_nfiles = QLabel("0")
+        self.label_nfiles.setToolTip(CONFIG["nfiles_tooltip"])
         self.label_nfiles.setStyleSheet("font-weight: bold;")
         footer.addWidget(self.label_nfiles)
         
         
-        self.pushButton_deleterow = QPushButton("Remove rows")
-        self.pushButton_deleterow.setIcon(QIcon(resource_path("icons", "edit-rem.png")))
+        self.pushButton_deleterow = QPushButton(CONFIG["deleterow_button"])
+        self.pushButton_deleterow.setToolTip(CONFIG["deleterow_button_tooltip"])
+        self.pushButton_deleterow.setIcon(QIcon(resource_path("icons", "edit-rem.svg")))
         self.pushButton_deleterow.clicked.connect(self.on_pushButton_deleterow_clicked)
         self.pushButton_deleterow.setIconSize(QSize(32, 32))
         footer.addWidget(self.pushButton_deleterow)
         
         footer.addStretch()
         
-        self.pushButton_saveexit = QPushButton("Save files and Exit")
+        self.pushButton_saveexit = QPushButton(CONFIG["saveexit_button"])
+        self.pushButton_saveexit.setToolTip(CONFIG["saveexit_button_tooltip"])
         self.pushButton_saveexit.setIcon(QIcon(resource_path("icons", "Gnome-media-floppy.png")))
         self.pushButton_saveexit.clicked.connect(self.on_pushButton_saveexit_clicked)
         self.pushButton_saveexit.setIconSize(QSize(32, 32))
@@ -206,41 +224,105 @@ class MainWindow(QMainWindow):
         
         layout.addLayout(footer)
 
-        # Conexões
 
-
-
-    def create_actions(self):
-        self.actionSave_files = QAction(
-            QIcon(resource_path("icons", "Gnome-media-floppy.png")), "&Save files", self)
+    def create_toolbar(self):
+        self.toolbar = self.addToolBar("Main")
+        self.toolbar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+    
+        # Save files
+        self.actionSave_files = QAction(QIcon(resource_path("icons", "Gnome-media-floppy.png")), 
+                                        CONFIG["toolbar_save"], 
+                                        self)
+        self.actionSave_files.setToolTip(CONFIG["toolbar_save_tooltip"])
         self.actionSave_files.setShortcut("Ctrl+S")
         self.actionSave_files.triggered.connect(self.on_actionSave_files_triggered)
+        self.toolbar.addAction(self.actionSave_files)
+        
+        
+        # Adicionar o espaçador
+        self.toolbar_spacer = QWidget()
+        self.toolbar_spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.toolbar.addWidget(self.toolbar_spacer)
+        
+        
+        # Configure
+        self.configure_action = QAction(QIcon(resource_path("icons", "text-configure.svg")),
+                                        CONFIG["toolbar_configure"], 
+                                        self)
+        self.configure_action.setToolTip(CONFIG["toolbar_configure_tooltip"])
+        self.configure_action.triggered.connect(self.open_configure_editor)
+        self.toolbar.addAction(self.configure_action)
+        
+        
+        # About
+        self.about_action = QAction(QIcon(resource_path("icons", "Information_icon.svg")),
+                                    CONFIG["toolbar_about"], 
+                                    self)
+        self.about_action.setToolTip(CONFIG["toolbar_about_tooltip"])
+        self.about_action.triggered.connect(self.open_about)
+        self.toolbar.addAction(self.about_action)
+        
+        
+        # Coffee
+        self.coffee_action = QAction(   QIcon(resource_path("icons", "emote-love.png")),
+                                        CONFIG["toolbar_coffee"], 
+                                        self)
+        self.coffee_action.setToolTip(CONFIG["toolbar_coffee_tooltip"])
+        self.coffee_action.triggered.connect(self.on_coffee_action_click)
+        self.toolbar.addAction(self.coffee_action)
 
-        self.actionConfiguration = QAction(
-            QIcon(resource_path("icons", "if_tools_1054957.png")), "&Configuration", self)
-        self.actionConfiguration.setShortcut("Ctrl+T")
-        self.actionConfiguration.triggered.connect(self.on_actionConfiguration_triggered)
+        
+        # Conectar ao sinal de mudança de orientação
+        self.toolbar.orientationChanged.connect(self.on_update_spacer_policy)
+        self.on_update_spacer_policy()
 
-        self.actionAbout = QAction(
-            QIcon(resource_path("icons", "Information_icon.png")), "About this program", self)
-        self.actionAbout.triggered.connect(self.on_actionAbout_triggered)
 
     def create_menus(self):
         menubar = self.menuBar()
-        menu_file = menubar.addMenu("&Menu")
+        
+        menu_file = menubar.addMenu(CONFIG["menubar_menu"])
         menu_file.addAction(self.actionSave_files)
 
-        menu_about = menubar.addMenu("Abo&ut")
-        menu_about.addAction(self.actionAbout)
+        menu_about = menubar.addMenu(CONFIG["menubar_about"])
+        menu_about.addAction(self.about_action)
+        
 
+    def on_update_spacer_policy(self):
+        """Atualiza a política do espaçador baseado na orientação da toolbar"""
+        if self.toolbar.orientation() == Qt.Horizontal:
+            # Horizontal: expande na largura
+            self.toolbar_spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        else:
+            # Vertical: expande na altura
+            self.toolbar_spacer.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
 
-    def create_toolbar(self):
-        toolbar = QToolBar()
-        toolbar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        self.addToolBar(toolbar)
+    def _open_file_in_text_editor(self, filepath):
+        if os.name == 'nt':  # Windows
+            os.startfile(filepath)
+        elif os.name == 'posix':  # Linux/macOS
+            subprocess.run(['xdg-open', filepath])
+            
+    def open_configure_editor(self):
+        self._open_file_in_text_editor(CONFIG_PATH)
 
-        toolbar.addAction(self.actionSave_files)
-        toolbar.addAction(self.actionConfiguration)
+    def open_about(self):
+        data={
+            "version": about.__version__,
+            "package": about.__package__,
+            "program_name": about.__program_files__,
+            "author": about.__author__,
+            "email": about.__email__,
+            "description": about.__description__,
+            "url_source": about.__url_source__,
+            "url_doc": about.__url_doc__,
+            "url_funding": about.__url_funding__,
+            "url_bugs": about.__url_bugs__
+        }
+        show_about_window(data,self.icon_path)
+
+    def on_coffee_action_click(self):
+        QDesktopServices.openUrl(QUrl("https://ko-fi.com/trucomanx"))
+
 
     # ==================== Métodos Originais ====================
 
@@ -278,7 +360,7 @@ class MainWindow(QMainWindow):
         filter_pattern = self.lineEdit_filter.text().strip()
 
         if not rootdir or not os.path.isdir(rootdir):
-            QMessageBox.warning(self, "Erro", "Diretório raiz inválido ou não existe!")
+            QMessageBox.warning(self, CONFIG["msg_error"], CONFIG["msg_error_invalid_dir"])
             return
 
         if not filter_pattern:
@@ -314,7 +396,7 @@ class MainWindow(QMainWindow):
             self.tableWidget.resizeColumnToContents(0)
 
         except Exception as e:
-            QMessageBox.critical(self, "Erro na busca", f"Ocorreu um erro:\n{str(e)}")
+            QMessageBox.critical(self, CONFIG["msg_error"], f"{str(e)}")
 
         finally:
             self.tableWidget.setSortingEnabled(True)  # Reativa ordenação
@@ -332,15 +414,16 @@ class MainWindow(QMainWindow):
         self.set_nfiles()
 
     def on_pushButton_rootdir_clicked(self):
-        dir_ = QFileDialog.getExistingDirectory(self, "Select root directory",
+        dir_ = QFileDialog.getExistingDirectory(self, CONFIG["msg_select_root"],
                                                 self.lineEdit_rootdir.text())
         if dir_:
             self.lineEdit_rootdir.setText(dir_)
 
     def on_pushButton_outfile_clicked(self):
-        start = self.lineEdit_outfile.text() or os.path.join(QDir.homePath(), "listfilesdat.listfiles")
+        start = self.lineEdit_outfile.text() or os.path.join(QDir.homePath(), "data.listfiles")
         fileName, _ = QFileDialog.getSaveFileName(
-            self, "Select or define an output filename",
+            self, 
+            CONFIG["msg_select_outfile"],
             start,
             "Output listfiles file (*.listfiles);;Output data file (*.dat);;All files (*)"
         )
@@ -355,7 +438,7 @@ class MainWindow(QMainWindow):
     def save_in_outfile(self):
         outfile = self.lineEdit_outfile.text()
         if not outfile:
-            QMessageBox.warning(self, "Error", "Output file not defined!")
+            QMessageBox.warning(self, CONFIG["msg_error"], CONFIG["msg_error_no_file"] )
             return False
 
         try:
@@ -366,39 +449,51 @@ class MainWindow(QMainWindow):
                         f.write(item.text() + "\n")
 
             n = self.tableWidget.rowCount()
-            msg = f"[OK] {n} files was written in {outfile}"
-            QMessageBox.information(self, "Success", msg)
+            msg = CONFIG["msg_files_written"] 
+            msg = f"[OK] {n} {msg} {outfile}"
+            QMessageBox.information(self, CONFIG["msg_sucess"], msg)
             self.statusBar().showMessage(msg, 5000)
             return True
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Writing the file {outfile}\n\n{str(e)}")
+            QMessageBox.critical(self, CONFIG["msg_error"], f"{outfile}\n\n{str(e)}")
             return False
 
     def on_actionSave_files_triggered(self):
         self.save_in_outfile()
 
-    def on_actionConfiguration_triggered(self):
-        self.statusBar().showMessage("Configuration open", 2000)
-        dialog = DialogConfiguration(self)
-        dialog.set_lineedit_listfiles_path(self.progpath)
-        dialog.set_sort_type([self.SORTDATATYPE])  # lista mutável
-        if dialog.exec_():
-            self.SORTDATATYPE = dialog.sort_index[0]
-
-    def on_actionAbout_triggered(self):
-        QMessageBox.about(self, "About the program",
-                          f"<center><b>{APP_TARGET}</b></center><br>"
-                          f"<b>version:</b> {APP_VERSION}<br>"
-                          f"<b>license:</b> GPL<br>"
-                          f"<b>homepage:</b> <a href='{APP_HOMEPAGE}'>{APP_HOMEPAGE}</a><br>"
-                          f"<b>author:</b> Fernando Pujaico Rivera")
-
-
 
 def main():
     signal.signal(signal.SIGINT, signal.SIG_DFL)
+       
+    extras="" 
+    
+    create_desktop_directory()    
+    create_desktop_menu()
+    create_desktop_file(os.path.join("~",".local","share","applications"), 
+                        program_name=about.__program_files__,
+                        extras=extras)
+    
+    for n in range(len(sys.argv)):
+        if sys.argv[n] == "--autostart":
+            create_desktop_directory(overwrite = True)
+            create_desktop_menu(overwrite = True)
+            create_desktop_file(os.path.join("~",".config","autostart"), 
+                                overwrite=True, 
+                                program_name=about.__program_files__,
+                                extras=extras)
+            return
+        if sys.argv[n] == "--applications":
+            create_desktop_directory(overwrite = True)
+            create_desktop_menu(overwrite = True)
+            create_desktop_file(os.path.join("~",".local","share","applications"), 
+                                overwrite=True, 
+                                program_name=about.__program_files__,
+                                extras=extras)
+            return
     
     app = QApplication(sys.argv)
+    app.setApplicationName(about.__program_files__) 
+    
     window = MainWindow()
     window.show()
     sys.exit(app.exec_())

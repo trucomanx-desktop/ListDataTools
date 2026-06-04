@@ -18,10 +18,10 @@ cd src
 
 
 ## ubuntu ##
-python3 -m PyInstaller --onefile --windowed --name list_data_tools --add-data "list_data_tools/icons:icons" --collect-all PyQt5  program_files_launcher.py
+python3 -m PyInstaller --onefile --windowed --name ldt-files --add-data "list_data_tools/icons:icons" --collect-all PyQt5  program_files_launcher.py
 
 ## windows ##
-python -m PyInstaller --onefile --windowed --name list_data_tools --add-data "list_data_tools/icons;icons" --collect-all PyQt5  program_files_launcher.py
+python -m PyInstaller --onefile --windowed --name ldt-files --add-data "list_data_tools/icons;icons" --collect-all PyQt5  program_files_launcher.py
 
 '''
 
