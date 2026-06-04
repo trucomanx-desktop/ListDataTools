@@ -1,17 +1,68 @@
 #!/usr/bin/python3
 
-import sys
 import os
+import sys
+import signal
+import subprocess
+
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QTableWidget, QTableWidgetItem,
-    QLineEdit, QPushButton, QLabel, QToolBar, QStatusBar,
-    QAction, QMessageBox, QFileDialog, QHeaderView
+    QApplication, QMainWindow, QTableWidget, QTableWidgetItem, QVBoxLayout, QHBoxLayout,  
+    QLineEdit, QPushButton, QLabel, QToolBar, QStatusBar, QGridLayout, 
+    QAction, QMessageBox, QFileDialog, QHeaderView, QWidget, QSizePolicy
 )
-from PyQt5.QtCore import Qt, QDir
-from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import Qt, QDir, QSize, QUrl
+from PyQt5.QtGui import QIcon, QDesktopServices
+
 
 # Import do diálogo
-from dialog_configuration import DialogConfiguration
+from list_data_tools.dialog_configuration import DialogConfiguration
+
+
+import list_data_tools.about as about
+import list_data_tools.modules.configure as configure 
+from list_data_tools.modules.resources import resource_path
+
+from list_data_tools.modules.wabout    import show_about_window
+from list_data_tools.desktop import create_desktop_file, create_desktop_directory, create_desktop_menu
+
+# ---------- Path to config file ----------
+CONFIG_PATH = os.path.join( os.path.expanduser("~"),
+                            ".config", 
+                            about.__package__, 
+                            "config.json" )
+
+DEFAULT_CONTENT={   
+    "toolbar_configure": "Configure",
+    "toolbar_configure_tooltip": "Open the configure Json file of program GUI",
+    "toolbar_about": "About",
+    "toolbar_about_tooltip": "About the program",
+    "toolbar_coffee": "Coffee",
+    "toolbar_coffee_tooltip": "Buy me a coffee (TrucomanX)",
+    "window_width": 1024,
+    "window_height": 800,
+    "input_label":"Root directory:",
+    "input_lineedit_placeholder": "/path/to/input/directory",
+    "input_lineedit_tooltip": "Directory where the files will be searched",
+    "input_button": "Select Input",
+    "input_button_tooltip": "Select a directory where the files will be searched",
+    "filter_label": "Filter filetype:",
+    "filter_lineedit": "*.jpg",
+    "filter_lineedit_placeholder": "*.png",
+    "filter_lineedit_tooltip": "The extension file to be searched",
+    "output_label": "Output file path:",
+    "output_lineedit_placeholder": "/path/to/output/filename.listfiles",
+    "output_lineedit_tooltip": "File where the files will be stored",
+    "output_button": "Select Output",
+    "output_button_tooltip": "Select the file where the files will be stored",
+}
+
+configure.verify_default_config(CONFIG_PATH,default_content=DEFAULT_CONTENT)
+
+CONFIG=configure.load_config(CONFIG_PATH)
+
+# ---------------------------------------
+
+
 
 # Constantes (ajuste conforme seu projeto)
 APP_TARGET = "ListFiles"
@@ -22,11 +73,17 @@ APP_HOMEPAGE = "https://github.com/seuusuario/listfiles"
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle(f"{APP_TARGET} {APP_VERSION}")
-        self.resize(825, 569)
+
+        self.setWindowTitle(about.__program_files__)
+        self.resize(CONFIG["window_width"], CONFIG["window_height"])
+        
+        ## Icon
+        # Get base directory for icons
+        self.icon_path = resource_path("icons", "logo.png")
+        self.setWindowIcon(QIcon(self.icon_path)) 
 
         self.SORTDATATYPE = 0  # 0 = SORT_LEX, 1 = SORT_LENGTH
-        self.progpath = ""
+        self.progpath = os.path.realpath(sys.argv[0])
         self.progdir = ""
 
         self.dis_rootdir = False
@@ -50,23 +107,32 @@ class MainWindow(QMainWindow):
         form_layout = QGridLayout()
         form_layout.setColumnStretch(1, 1)
 
+
+
         # Root Directory
-        self.label_rootdir = QLabel("Root directory:")
+        self.label_rootdir = QLabel(CONFIG["input_label"])
         self.lineEdit_rootdir = QLineEdit()
-        self.pushButton_rootdir = QPushButton("...")
-        self.pushButton_rootdir.setIcon(QIcon(os.path.join("icons", "folder-saved-search.png")))
-        self.pushButton_rootdir.setFixedSize(30, 30)
+        self.lineEdit_rootdir.setPlaceholderText(CONFIG["input_lineedit_placeholder"])
+        self.lineEdit_rootdir.setToolTip(CONFIG["input_lineedit_tooltip"])
+        self.pushButton_rootdir = QPushButton(CONFIG["input_button"])
+        self.pushButton_rootdir.setIcon(QIcon(resource_path("icons", "folder-saved-search.png")))
+        self.pushButton_rootdir.setToolTip(CONFIG["input_button_tooltip"])
 
         # Filter
-        self.label_filter = QLabel("Filter filetype:")
-        self.lineEdit_filter = QLineEdit()
+        self.label_filter = QLabel(CONFIG["filter_label"])
+        self.lineEdit_filter = QLineEdit(CONFIG["filter_lineedit"])
+        self.lineEdit_filter.setPlaceholderText(CONFIG["filter_lineedit_placeholder"])
+        self.lineEdit_filter.setToolTip(CONFIG["filter_lineedit_tooltip"])
+
 
         # Output file
-        self.label_outfile = QLabel("Output file path:")
+        self.label_outfile = QLabel(CONFIG["output_label"])
         self.lineEdit_outfile = QLineEdit()
-        self.pushButton_outfile = QPushButton("...")
-        self.pushButton_outfile.setIcon(QIcon(os.path.join("icons", "listfiles.png")))
-        self.pushButton_outfile.setFixedSize(30, 30)
+        self.lineEdit_outfile.setPlaceholderText(CONFIG["output_lineedit_placeholder"])
+        self.lineEdit_outfile.setToolTip(CONFIG["output_lineedit_tooltip"])
+        self.pushButton_outfile = QPushButton(CONFIG["output_button"])
+        self.pushButton_outfile.setIcon(QIcon(resource_path("icons", "listfiles.png")))
+        self.pushButton_outfile.setToolTip(CONFIG["output_button_tooltip"])
 
         # Adiciona ao grid
         form_layout.addWidget(self.label_rootdir, 0, 0)
@@ -85,15 +151,15 @@ class MainWindow(QMainWindow):
         # === Botões de ação ===
         btn_layout = QHBoxLayout()
         self.pushButton_search = QPushButton("Search")
-        self.pushButton_search.setIcon(QIcon(os.path.join("icons", "gtk-zoom-fit.png")))
+        self.pushButton_search.setIcon(QIcon(resource_path("icons", "gtk-zoom-fit.png")))
         self.pushButton_search.setIconSize(QSize(24, 24))
 
         self.pushButton_deleterow = QPushButton("Remove rows")
-        self.pushButton_deleterow.setIcon(QIcon(os.path.join("icons", "edit-rem.png")))
+        self.pushButton_deleterow.setIcon(QIcon(resource_path("icons", "edit-rem.png")))
         self.pushButton_deleterow.setIconSize(QSize(24, 24))
 
         self.pushButton_saveexit = QPushButton("Save files and Exit")
-        self.pushButton_saveexit.setIcon(QIcon(os.path.join("icons", "Gnome-media-floppy.png")))
+        self.pushButton_saveexit.setIcon(QIcon(resource_path("icons", "Gnome-media-floppy.png")))
         self.pushButton_saveexit.setIconSize(QSize(32, 32))
 
         btn_layout.addWidget(self.pushButton_search)
@@ -130,39 +196,27 @@ class MainWindow(QMainWindow):
 
     def create_actions(self):
         self.actionSave_files = QAction(
-            QIcon(os.path.join("icons", "Gnome-media-floppy.png")), "&Save files", self)
+            QIcon(resource_path("icons", "Gnome-media-floppy.png")), "&Save files", self)
         self.actionSave_files.setShortcut("Ctrl+S")
         self.actionSave_files.triggered.connect(self.on_actionSave_files_triggered)
 
         self.actionConfiguration = QAction(
-            QIcon(os.path.join("icons", "if_tools_1054957.png")), "&Configuration", self)
+            QIcon(resource_path("icons", "if_tools_1054957.png")), "&Configuration", self)
         self.actionConfiguration.setShortcut("Ctrl+T")
         self.actionConfiguration.triggered.connect(self.on_actionConfiguration_triggered)
 
-        self.actionTutorial = QAction(
-            QIcon(os.path.join("icons", "if_document_1055071.png")), "&Tutorial", self)
-        self.actionTutorial.setShortcut("Ctrl+H")
-        self.actionTutorial.triggered.connect(self.on_actionTutorial_triggered)
-
         self.actionAbout = QAction(
-            QIcon(os.path.join("icons", "Information_icon.png")), "About this program", self)
+            QIcon(resource_path("icons", "Information_icon.png")), "About this program", self)
         self.actionAbout.triggered.connect(self.on_actionAbout_triggered)
-
-        self.actionAboutQt = QAction(
-            QIcon(os.path.join("icons", "Information_icon.png")), "About QT libs", self)
-        self.actionAboutQt.triggered.connect(self.on_actionAbout_QT_libs_triggered)
 
     def create_menus(self):
         menubar = self.menuBar()
         menu_file = menubar.addMenu("&Menu")
         menu_file.addAction(self.actionSave_files)
 
-        menu_doc = menubar.addMenu("&Documentation")
-        menu_doc.addAction(self.actionTutorial)
-
         menu_about = menubar.addMenu("Abo&ut")
         menu_about.addAction(self.actionAbout)
-        menu_about.addAction(self.actionAboutQt)
+
 
     def create_toolbar(self):
         toolbar = QToolBar()
@@ -278,10 +332,6 @@ class MainWindow(QMainWindow):
         if dialog.exec_():
             self.SORTDATATYPE = dialog.sort_index[0]
 
-    def on_actionTutorial_triggered(self):
-        # Implementar abertura do PDF
-        pass
-
     def on_actionAbout_triggered(self):
         QMessageBox.about(self, "About the program",
                           f"<center><b>{APP_TARGET}</b></center><br>"
@@ -290,12 +340,16 @@ class MainWindow(QMainWindow):
                           f"<b>homepage:</b> <a href='{APP_HOMEPAGE}'>{APP_HOMEPAGE}</a><br>"
                           f"<b>author:</b> Fernando Pujaico Rivera")
 
-    def on_actionAbout_QT_libs_triggered(self):
-        QMessageBox.aboutQt(self, "Qt :: a cross-platform application framework")
 
 
-if __name__ == "__main__":
+def main():
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+    
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()
     sys.exit(app.exec_())
+
+if __name__ == "__main__":
+    main()
+    
