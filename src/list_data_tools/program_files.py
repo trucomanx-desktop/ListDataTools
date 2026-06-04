@@ -54,6 +54,8 @@ DEFAULT_CONTENT={
     "output_lineedit_tooltip": "File where the files will be stored",
     "output_button": "Select Output",
     "output_button_tooltip": "Select the file where the files will be stored",
+    "search_button": "Search",
+    "search_button_tooltip": "Start the search for files.",
 }
 
 configure.verify_default_config(CONFIG_PATH,default_content=DEFAULT_CONTENT)
@@ -115,8 +117,9 @@ class MainWindow(QMainWindow):
         self.lineEdit_rootdir.setPlaceholderText(CONFIG["input_lineedit_placeholder"])
         self.lineEdit_rootdir.setToolTip(CONFIG["input_lineedit_tooltip"])
         self.pushButton_rootdir = QPushButton(CONFIG["input_button"])
-        self.pushButton_rootdir.setIcon(QIcon(resource_path("icons", "folder-saved-search.png")))
+        self.pushButton_rootdir.setIcon(QIcon(resource_path("icons", "folder-saved-search.svg")))
         self.pushButton_rootdir.setToolTip(CONFIG["input_button_tooltip"])
+        self.pushButton_rootdir.clicked.connect(self.on_pushButton_rootdir_clicked)
 
         # Filter
         self.label_filter = QLabel(CONFIG["filter_label"])
@@ -131,8 +134,9 @@ class MainWindow(QMainWindow):
         self.lineEdit_outfile.setPlaceholderText(CONFIG["output_lineedit_placeholder"])
         self.lineEdit_outfile.setToolTip(CONFIG["output_lineedit_tooltip"])
         self.pushButton_outfile = QPushButton(CONFIG["output_button"])
-        self.pushButton_outfile.setIcon(QIcon(resource_path("icons", "listfiles.png")))
+        self.pushButton_outfile.setIcon(QIcon(resource_path("icons", "listfiles.svg")))
         self.pushButton_outfile.setToolTip(CONFIG["output_button_tooltip"])
+        self.pushButton_outfile.clicked.connect(self.on_pushButton_outfile_clicked)
 
         # Adiciona ao grid
         form_layout.addWidget(self.label_rootdir, 0, 0)
@@ -148,26 +152,17 @@ class MainWindow(QMainWindow):
 
         layout.addLayout(form_layout)
 
+
+        # Search
+        self.pushButton_search = QPushButton(CONFIG["search_button"])
+        self.pushButton_search.setToolTip(CONFIG["search_button_tooltip"])
+        self.pushButton_search.setIcon(QIcon(resource_path("icons", "gtk-zoom-fit.svg")))
+        self.pushButton_search.setIconSize(QSize(32, 32))
+        self.pushButton_search.clicked.connect(self.on_pushButton_search_clicked)
+        layout.addWidget(self.pushButton_search)
+        
         # === Botões de ação ===
         btn_layout = QHBoxLayout()
-        self.pushButton_search = QPushButton("Search")
-        self.pushButton_search.setIcon(QIcon(resource_path("icons", "gtk-zoom-fit.png")))
-        self.pushButton_search.setIconSize(QSize(24, 24))
-
-        self.pushButton_deleterow = QPushButton("Remove rows")
-        self.pushButton_deleterow.setIcon(QIcon(resource_path("icons", "edit-rem.png")))
-        self.pushButton_deleterow.setIconSize(QSize(24, 24))
-
-        self.pushButton_saveexit = QPushButton("Save files and Exit")
-        self.pushButton_saveexit.setIcon(QIcon(resource_path("icons", "Gnome-media-floppy.png")))
-        self.pushButton_saveexit.setIconSize(QSize(32, 32))
-
-        btn_layout.addWidget(self.pushButton_search)
-        btn_layout.addWidget(self.pushButton_deleterow)
-        btn_layout.addStretch()
-        btn_layout.addWidget(self.pushButton_saveexit)
-
-        layout.addLayout(btn_layout)
 
         # === Tabela ===
         self.tableWidget = QTableWidget()
@@ -176,23 +171,42 @@ class MainWindow(QMainWindow):
         self.tableWidget.horizontalHeader().setStretchLastSection(True)
         self.tableWidget.setSelectionBehavior(QTableWidget.SelectRows)
         self.tableWidget.setEditTriggers(QTableWidget.NoEditTriggers)
-        layout.addWidget(self.tableWidget)
+        btn_layout.addWidget(self.tableWidget)
+
+        #
+        self.pushButton_deleterow = QPushButton("Remove rows")
+        self.pushButton_deleterow.setIcon(QIcon(resource_path("icons", "edit-rem.png")))
+        #self.pushButton_deleterow.setIconSize(QSize(24, 24))
+        self.pushButton_deleterow.clicked.connect(self.on_pushButton_deleterow_clicked)
+        btn_layout.addWidget(self.pushButton_deleterow)
+        
+
+
+        layout.addLayout(btn_layout)
+
+
 
         # === Rodapé com número de arquivos ===
         footer = QHBoxLayout()
+        
         footer.addWidget(QLabel("Number of files:"))
         self.label_nfiles = QLabel("0")
         self.label_nfiles.setStyleSheet("font-weight: bold;")
         footer.addWidget(self.label_nfiles)
+        
         footer.addStretch()
+        
+        self.pushButton_saveexit = QPushButton("Save files and Exit")
+        self.pushButton_saveexit.setIcon(QIcon(resource_path("icons", "Gnome-media-floppy.png")))
+        self.pushButton_saveexit.clicked.connect(self.on_pushButton_saveexit_clicked)
+        self.pushButton_saveexit.setIconSize(QSize(32, 32))
+        footer.addWidget(self.pushButton_saveexit)
+        
         layout.addLayout(footer)
 
         # Conexões
-        self.pushButton_search.clicked.connect(self.on_pushButton_search_clicked)
-        self.pushButton_deleterow.clicked.connect(self.on_pushButton_deleterow_clicked)
-        self.pushButton_rootdir.clicked.connect(self.on_pushButton_rootdir_clicked)
-        self.pushButton_outfile.clicked.connect(self.on_pushButton_outfile_clicked)
-        self.pushButton_saveexit.clicked.connect(self.on_pushButton_saveexit_clicked)
+
+
 
     def create_actions(self):
         self.actionSave_files = QAction(
