@@ -29,6 +29,7 @@ dependencies = [
 
 [project.scripts]
 "ldt-files" = "list_data_tools.program_files:main"
+"ldt-points" = "list_data_tools.program_points:main"
 
 [tool.setuptools]
 packages = ["list_data_tools", "list_data_tools.modules"]

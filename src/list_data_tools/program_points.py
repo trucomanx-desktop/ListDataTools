@@ -1,8 +1,9 @@
 import os
 import sys
 import math
-import random
 import signal
+import random
+import argparse
 import subprocess
 
 from PyQt5.QtCore import Qt, QPoint, QPointF, QSize, QFileInfo, QDir, pyqtSignal, QUrl
@@ -39,7 +40,83 @@ DEFAULT_CONTENT={
     "toolbar_coffee": "Coffee",
     "toolbar_coffee_tooltip": "Buy me a coffee (TrucomanX)",
     "window_width": 1024,
-    "window_height": 800
+    "window_height": 800,
+    "background_label": "Background image:",
+    "background_lineedit_placeholder": "",
+    "background_lineedit_tooltip": "Path of image file that will be used as a background in the points selection",
+    "background_button": "Select image",
+    "background_button_tooltip": "Select an image file that will be used as a background in the point selection.",
+    "output_label": "Output file:",
+    "output_lineedit_tooltip": "The path of the output file with the list of points",
+    "output_button": "Select output",
+    "output_button_tooltip": "Select the path of the output file with the list of points",
+    "point_color_button": "Point color",
+    "point_color_button_tooltip": "Select the color of points",
+    "corner_color_button": "Corner color",
+    "corner_color_button_tooltip": "Select the color of corners",
+    "total_points_label": "Total points:",
+    "save_exist_button": "Save and Exit",
+    "save_exist_button_tooltip": "Save the points and close the program",
+    "tab_gaussian": "Gaussian", 
+    "gaussian_number_point_label": "Number of points:",
+    "gaussian_number_point_spin_tooltip": "Number of points in gaussian format",
+    "gaussian_radius_pixel_label": "Radius in pixels:",
+    "gaussian_radius_pixel_spin_tooltip": "Standard deviation of gaussian points",
+    "gaussian_select_button": "Select points",
+    "gaussian_select_button_tooltip": "Select points in Gaussian format. Press the button and then click on any point inside the image; this will be the center of the Gaussian.",
+    "tab_random": "Random",
+    "random_number_points_label": "Number of points:",
+    "random_number_points_spin_tooltip": "Select the number of points",
+    "random_select_corner1_button": "Select corner 1",
+    "random_select_corner1_button_tooltip": "Press the button and then click inside the image to select the first corner point.",
+    "random_select_corner1_line_label": "Corner 1 - Line:",
+    "random_select_corner1_line_spin_tooltip": "The line position of the first corner",
+    "random_select_corner1_column_label": "Corner 1 - Column:",
+    "random_select_corner1_column_spin_tooltip": "The column position of the first corner",
+    "random_select_corner2_button": "Select corner 2",
+    "random_select_corner2_button_tooltip": "Press the button and then click inside the image to select the second corner point.",
+    "random_select_corner2_line_label": "Corner 2 - Line:",
+    "random_select_corner2_line_spin_tooltip": "The line position of the second corner",
+    "random_select_corner2_column_label": "Corner 2 - Column:",
+    "random_select_corner2_column_spin_tooltip": "The column position of the second corner",
+    "random_select_button": "Select points",
+    "random_select_button_tooltip": "Select points in random uniform format. Before this button, you need to define corner 1 and corner 2.",
+    "toolbar_save": "&Save points",
+    "toolbar_save_tooltip": "Save the points in the output file",
+    "toolbar_save_shortcut": "Ctrl+S",
+    "toolbar_load": "Load points",
+    "toolbar_load_tooltip": "Load the points from the output file",
+    "toolbar_remove": "Remove points",
+    "toolbar_remove_tooltip": "Remove all points",
+    "toolbar_screenshot": "Screenshot",
+    "toolbar_screenshot_tooltip": "Take a screenshot and save the image",
+    "menubar_menu": "&Menu",
+    "menubar_about": "A&bout",
+    "msg_error": "Error",
+    "msg_error_need_select_output": "First you need select the output file.",
+    "msg_wrote_points": "Wrote points in the file",
+    "msg_saved": "Saved",
+    "msg_error_writing_output": "Error writing the file",
+    "msg_error_need_select": "First need be selected the imagefile.",
+    "msg_open_points_file": "Open points file",
+    "msg_error_no_input": "No input file selected.",
+    "msg_loading_file": "Loading the file:",
+    "msg_error_reading_file": "Error reading the file:",
+    "msg_error_found_elements": "They were found elements in the input file (Minimum 2).",
+    "msg_error_point_added": "The point cannot be added:",
+    "msg_open_image": "Open Image File",
+    "msg_select_output": "Select or define an output filename",
+    "msg_select_central_point": "Select the central point",
+    "msg_points_selected": "Points selected",
+    "msg_select_corner1": "Select a corner point 1",
+    "msg_select_corner2": "Select a corner point 2",
+    "msg_wrote_file": "Wrote the image file:",
+    "msg_error_not_write": "ERROR:: Could not write the image file:",
+    "msg_warning": "Warning",
+    "msg_need_select_inside": "You need select the point inside the image.",
+    "msg_gaussian_clicked": "Gaussian clicked done",
+    "msg_random_corner1_selected": "Corner 1 selected",
+    "msg_random_corner2_selected": "Corner 2 selected",
 }
 
 configure.verify_default_config(CONFIG_PATH,default_content=DEFAULT_CONTENT)
@@ -112,18 +189,18 @@ class MainWindow(QMainWindow):
 
         self.IMAGEH = 0
         self.IMAGEW = 0
-        self.progpath = None
-        self.progdir  = None
         self.dis_rootimage = 0
         self.dis_outfile   = 0
 
         self.scene = None  # criado em load_imagefile
 
-        self._setup_ui()
-        self._setup_menubar()
+
         self._setup_toolbar()
+        self._setup_menubar()
+
+        self._setup_ui()
+        
         self._setup_statusbar()
-        self._connect_signals()
 
         # inicializa cena vazia e limpa pontos
         self.load_imagefile("")
@@ -132,8 +209,6 @@ class MainWindow(QMainWindow):
         # ícones de cor nos botões
         self.pushButton_point_color.setIcon(_color_icon(self.color_point))
         self.pushButton_corner_color.setIcon(_color_icon(self.color_corner))
-
-        self.mainToolBar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
 
     # -----------------------------------------------------------------------
     # Construção da UI
@@ -151,27 +226,35 @@ class MainWindow(QMainWindow):
         # --- grid superior: imagem de fundo + ficheiro de saída ---
         self.gridLayout = QGridLayout()
         self.verticalLayout_3.addLayout(self.gridLayout)
-
-        self.label_9 = QLabel("Background image:")
+        
+       
+        self.label_9 = QLabel(CONFIG["background_label"])
         self.gridLayout.addWidget(self.label_9, 0, 0)
 
         self.lineEdit_imagefile = QLineEdit()
+        self.lineEdit_imagefile.setPlaceholderText(CONFIG["background_lineedit_placeholder"])
+        self.lineEdit_imagefile.setToolTip(CONFIG["background_lineedit_tooltip"])
         self.lineEdit_imagefile.setEnabled(False)
         self.gridLayout.addWidget(self.lineEdit_imagefile, 0, 1)
 
-        self.pushButton_imagefile = QPushButton()
+        self.pushButton_imagefile = QPushButton(CONFIG["background_button"])
+        self.pushButton_imagefile.setToolTip(CONFIG["background_button_tooltip"])
         self.pushButton_imagefile.setIcon(QIcon(resource_path("icons", "folder-saved-search.svg")))
         self.gridLayout.addWidget(self.pushButton_imagefile, 0, 2)
+        self.pushButton_imagefile.clicked.connect(self.on_pushButton_imagefile_clicked)
 
-        self.label_10 = QLabel("Output file:")
+        self.label_10 = QLabel(CONFIG["output_label"])
         self.gridLayout.addWidget(self.label_10, 1, 0)
 
         self.lineEdit_outfile = QLineEdit()
+        self.lineEdit_outfile.setToolTip(CONFIG["output_lineedit_tooltip"])
         self.gridLayout.addWidget(self.lineEdit_outfile, 1, 1)
 
-        self.pushButton_outfile = QPushButton()
+        self.pushButton_outfile = QPushButton(CONFIG["output_button"])
+        self.pushButton_outfile.setToolTip(CONFIG["output_button_tooltip"])
         self.pushButton_outfile.setIcon(QIcon(resource_path("icons", "if_compose_1055085.svg")))
         self.gridLayout.addWidget(self.pushButton_outfile, 1, 2)
+        self.pushButton_outfile.clicked.connect(self.on_pushButton_outfile_clicked)
 
         # --- meio: graphicsView + tabWidget ---
         self.horizontalLayout_2 = QHBoxLayout()
@@ -180,6 +263,7 @@ class MainWindow(QMainWindow):
         self.graphicsView = mygraphicsview()
         self.graphicsView.setMouseTracking(False)
         self.horizontalLayout_2.addWidget(self.graphicsView)
+        self.graphicsView.sendMousePosition.connect(self.my_mouse_event)
 
         self.tabWidget = QTabWidget()
         self.tabWidget.setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding))
@@ -193,13 +277,18 @@ class MainWindow(QMainWindow):
         self.horizontalLayout_4 = QHBoxLayout()
         self.verticalLayout_3.addLayout(self.horizontalLayout_4)
 
-        self.pushButton_point_color = QPushButton("Point color")
+        
+        self.pushButton_point_color = QPushButton(CONFIG["point_color_button"])
+        self.pushButton_point_color.setToolTip(CONFIG["point_color_button_tooltip"])
+        self.pushButton_point_color.clicked.connect(self.on_pushButton_point_color_clicked)
         self.horizontalLayout_4.addWidget(self.pushButton_point_color)
 
-        self.pushButton_corner_color = QPushButton("Corner color")
+        self.pushButton_corner_color = QPushButton(CONFIG["corner_color_button"])
+        self.pushButton_corner_color.setToolTip(CONFIG["corner_color_button_tooltip"])
+        self.pushButton_corner_color.clicked.connect(self.on_pushButton_corner_color_clicked)
         self.horizontalLayout_4.addWidget(self.pushButton_corner_color)
 
-        self.label = QLabel("Total points:")
+        self.label = QLabel(CONFIG["total_points_label"])
         self.horizontalLayout_4.addWidget(self.label)
 
         self.label_npoints = QLabel("0")
@@ -207,41 +296,48 @@ class MainWindow(QMainWindow):
 
         self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.horizontalLayout_4.addItem(self.horizontalSpacer)
-
-        self.pushButton_saveexit = QPushButton("Save points and Exit")
+        
+        self.pushButton_saveexit = QPushButton(CONFIG["save_exist_button"])
+        self.pushButton_saveexit.setToolTip(CONFIG["save_exist_button_tooltip"])
         self.pushButton_saveexit.setIcon(QIcon(resource_path("icons", "Gnome-media-floppy.png")))
         self.pushButton_saveexit.setIconSize(QSize(48, 48))
+        self.pushButton_saveexit.clicked.connect(self.on_pushButton_saveexit_clicked)
         self.horizontalLayout_4.addWidget(self.pushButton_saveexit)
+
 
     def _setup_tab_gaussian(self):
         self.tab = QWidget()
-        self.tabWidget.addTab(self.tab, "Gaussian")
+        self.tabWidget.addTab(self.tab, CONFIG["tab_gaussian"] )
 
         self.verticalLayout_2 = QVBoxLayout(self.tab)
 
         self.formLayout_2 = QFormLayout()
         self.verticalLayout_2.addLayout(self.formLayout_2)
 
-        self.label_4 = QLabel("Number of points:")
+        self.label_4 = QLabel(CONFIG["gaussian_number_point_label"])
         self.spinBox_gaussian_npoints = QSpinBox()
+        self.spinBox_gaussian_npoints.setToolTip(CONFIG["gaussian_number_point_spin_tooltip"])
         self.spinBox_gaussian_npoints.setMinimum(1)
         self.spinBox_gaussian_npoints.setMaximum(100000)
         self.spinBox_gaussian_npoints.setValue(200)
         self.formLayout_2.addRow(self.label_4, self.spinBox_gaussian_npoints)
 
-        self.label_5 = QLabel("Radius in pixels:")
+        self.label_5 = QLabel(CONFIG["gaussian_radius_pixel_label"])
         self.spinBox_gaussian_radius = QSpinBox()
+        self.spinBox_gaussian_radius.setToolTip(CONFIG["gaussian_radius_pixel_spin_tooltip"])
         self.spinBox_gaussian_radius.setMinimum(1)
         self.spinBox_gaussian_radius.setMaximum(100000)
         self.spinBox_gaussian_radius.setValue(16)
         self.formLayout_2.addRow(self.label_5, self.spinBox_gaussian_radius)
 
-        self.pushButton_select_gaussian = QPushButton("Select points")
+        self.pushButton_select_gaussian = QPushButton(CONFIG["gaussian_select_button"])
+        self.pushButton_select_gaussian.setToolTip(CONFIG["gaussian_select_button_tooltip"])
+        self.pushButton_select_gaussian.clicked.connect(self.on_pushButton_select_gaussian_clicked)
         self.verticalLayout_2.addWidget(self.pushButton_select_gaussian)
 
     def _setup_tab_random(self):
         self.tab_2 = QWidget()
-        self.tabWidget.addTab(self.tab_2, "Random")
+        self.tabWidget.addTab(self.tab_2, CONFIG["tab_random"])
 
         self.verticalLayout_4 = QVBoxLayout(self.tab_2)
 
@@ -250,118 +346,184 @@ class MainWindow(QMainWindow):
 
         sp_exp = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
-        self.label_2 = QLabel("Number of points:")
+        self.label_2 = QLabel(CONFIG["random_number_points_label"] )
         self.spinBox_random_npoints = QSpinBox()
+        self.spinBox_random_npoints.setToolTip(CONFIG["random_number_points_spin_tooltip"])
         self.spinBox_random_npoints.setMinimum(1)
         self.spinBox_random_npoints.setMaximum(100000)
         self.spinBox_random_npoints.setValue(200)
         self.formLayout.addRow(self.label_2, self.spinBox_random_npoints)
 
-        self.pushButton_random_c1 = QPushButton("Select corner 1")
+        self.pushButton_random_c1 = QPushButton(CONFIG["random_select_corner1_button"])
+        self.pushButton_random_c1.setToolTip(CONFIG["random_select_corner1_button_tooltip"])
+        self.pushButton_random_c1.clicked.connect(self.on_pushButton_random_c1_clicked)
         self.formLayout.setWidget(1, QFormLayout.LabelRole, self.pushButton_random_c1)
 
-        self.label_3 = QLabel("Corner 1 - Line:")
+        self.label_3 = QLabel(CONFIG["random_select_corner1_line_label"])
         self.label_3.setSizePolicy(sp_exp)
         self.spinBox_random_c1_line = QSpinBox()
+        self.spinBox_random_c1_line.setToolTip(CONFIG["random_select_corner1_line_spin_tooltip"])
         self.spinBox_random_c1_line.setMaximum(100000)
         self.formLayout.addRow(self.label_3, self.spinBox_random_c1_line)
 
-        self.label_6 = QLabel("Corner 1 - Column:")
+        self.label_6 = QLabel(CONFIG["random_select_corner1_column_label"])
         self.label_6.setSizePolicy(sp_exp)
         self.label_6.setLayoutDirection(Qt.RightToLeft)
         self.spinBox_random_c1_column = QSpinBox()
+        self.spinBox_random_c1_column.setToolTip(CONFIG["random_select_corner1_column_spin_tooltip"])
         self.spinBox_random_c1_column.setMaximum(100000)
         self.formLayout.addRow(self.label_6, self.spinBox_random_c1_column)
 
-        self.pushButton_random_c2 = QPushButton("Select corner 2")
+        self.pushButton_random_c2 = QPushButton(CONFIG["random_select_corner2_button"])
+        self.pushButton_random_c2.setToolTip(CONFIG["random_select_corner2_button_tooltip"])
+        self.pushButton_random_c2.clicked.connect(self.on_pushButton_random_c2_clicked)
         self.formLayout.setWidget(4, QFormLayout.LabelRole, self.pushButton_random_c2)
 
-        self.label_7 = QLabel("Corner 2 - Line:")
+        self.label_7 = QLabel(CONFIG["random_select_corner2_line_label"])
         self.spinBox_random_c2_line = QSpinBox()
+        self.spinBox_random_c2_line.setToolTip(CONFIG["random_select_corner2_line_spin_tooltip"])
         self.spinBox_random_c2_line.setMaximum(100000)
         self.formLayout.addRow(self.label_7, self.spinBox_random_c2_line)
 
-        self.label_8 = QLabel("Corner 2 - Column:")
+        self.label_8 = QLabel(CONFIG["random_select_corner2_column_label"])
         self.spinBox_random_c2_column = QSpinBox()
+        self.spinBox_random_c2_column.setToolTip(CONFIG["random_select_corner2_column_spin_tooltip"])
         self.spinBox_random_c2_column.setMaximum(100000)
         self.formLayout.addRow(self.label_8, self.spinBox_random_c2_column)
 
-        self.pushButton_select_random = QPushButton("Select points")
+        self.pushButton_select_random = QPushButton(CONFIG["random_select_button"])
+        self.pushButton_select_random.setToolTip(CONFIG["random_select_button_tooltip"])
+        self.pushButton_select_random.clicked.connect(self.on_pushButton_select_random_clicked)
         self.verticalLayout_4.addWidget(self.pushButton_select_random)
+
+
+
+    def _setup_toolbar(self):
+        self.toolbar = self.addToolBar("Main")
+        self.toolbar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+    
+        # 
+        self.actionSave_points = QAction(   QIcon(resource_path("icons", "Gnome-media-floppy.png")), 
+                                            CONFIG["toolbar_save"], 
+                                            self)
+        self.actionSave_points.setToolTip(CONFIG["toolbar_save_tooltip"])
+        self.actionSave_points.setShortcut(CONFIG["toolbar_save_shortcut"])
+        self.actionSave_points.triggered.connect(self.on_actionSave_points_triggered)
+        self.toolbar.addAction(self.actionSave_points)
+
+        # 
+        self.actionLoad_points = QAction(   QIcon(resource_path("icons", "edit-add.svg")), 
+                                            CONFIG["toolbar_load"], 
+                                            self)
+        self.actionLoad_points.setToolTip(CONFIG["toolbar_load_tooltip"])
+        self.actionLoad_points.triggered.connect(self.on_actionLoad_points_triggered)
+        self.toolbar.addAction(self.actionLoad_points)
+
+        # 
+        self.actionRemove_points = QAction( QIcon(resource_path("icons", "edit-rem.svg")), 
+                                            CONFIG["toolbar_remove"], 
+                                            self)
+        self.actionRemove_points.setToolTip(CONFIG["toolbar_remove_tooltip"])
+        self.actionRemove_points.triggered.connect(self.on_actionRemove_points_triggered)
+        self.toolbar.addAction(self.actionRemove_points)
+
+        # 
+        self.actionScreenshot = QAction(QIcon(resource_path("icons", "if_polaroids_1055003.svg")), 
+                                        CONFIG["toolbar_screenshot"], 
+                                        self)
+        self.actionScreenshot.setToolTip(CONFIG["toolbar_screenshot_tooltip"])
+        self.actionScreenshot.triggered.connect(self.on_actionScreenshot_triggered)
+        self.toolbar.addAction(self.actionScreenshot)
+
+
+        # Adicionar o espaçador
+        self.toolbar_spacer = QWidget()
+        self.toolbar_spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.toolbar.addWidget(self.toolbar_spacer)
+        
+        #
+        self.configure_action = QAction(QIcon(resource_path("icons", "text-configure.svg")), 
+                                        CONFIG["toolbar_configure"], 
+                                        self)
+        self.configure_action.setToolTip(CONFIG["toolbar_configure_tooltip"])
+        self.configure_action.triggered.connect(self.open_configure_editor)
+        self.toolbar.addAction(self.configure_action)
+        
+        #
+        self.about_action = QAction(QIcon(resource_path("icons", "Information_icon.svg")), 
+                                    CONFIG["toolbar_about"], 
+                                    self)
+        self.about_action.setToolTip(CONFIG["toolbar_about_tooltip"])
+        self.about_action.triggered.connect(self.open_about)
+        self.toolbar.addAction(self.about_action)
+        
+        # Coffee
+        self.coffee_action = QAction(   QIcon(resource_path("icons", "emote-love.png")), 
+                                        CONFIG["toolbar_coffee"], 
+                                        self)
+        self.coffee_action.setToolTip(CONFIG["toolbar_coffee_tooltip"])
+        self.coffee_action.triggered.connect(self.on_coffee_action_click)
+        self.toolbar.addAction(self.coffee_action)
+
+        # Conectar ao sinal de mudança de orientação
+        self.toolbar.orientationChanged.connect(self.on_update_spacer_policy)
+        self.on_update_spacer_policy()
+
+    def on_update_spacer_policy(self):
+        """Atualiza a política do espaçador baseado na orientação da toolbar"""
+        if self.toolbar.orientation() == Qt.Horizontal:
+            # Horizontal: expande na largura
+            self.toolbar_spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        else:
+            # Vertical: expande na altura
+            self.toolbar_spacer.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+
+    def _open_file_in_text_editor(self, filepath):
+        if os.name == 'nt':  # Windows
+            os.startfile(filepath)
+        elif os.name == 'posix':  # Linux/macOS
+            subprocess.run(['xdg-open', filepath])
+        
+    def open_configure_editor(self):
+        self._open_file_in_text_editor(CONFIG_PATH)
+
+    def open_about(self):
+        data={
+            "version": about.__version__,
+            "package": about.__package__,
+            "program_name": about.__program_points__,
+            "author": about.__author__,
+            "email": about.__email__,
+            "description": about.__description__,
+            "url_source": about.__url_source__,
+            "url_doc": about.__url_doc__,
+            "url_funding": about.__url_funding__,
+            "url_bugs": about.__url_bugs__
+        }
+        show_about_window(data,self.icon_path)
+
+    def on_coffee_action_click(self):
+        QDesktopServices.openUrl(QUrl("https://ko-fi.com/trucomanx"))
+        
 
     def _setup_menubar(self):
         self.menuBar = self.menuBar()
         self.menuBar.setGeometry(0, 0, 790, 25)
 
-        self.actionSave_points = QAction(QIcon(resource_path("icons", "Gnome-media-floppy.png")), "&Save points", self)
-        self.actionSave_points.setToolTip("Save the points in the output file")
-        self.actionSave_points.setShortcut("Ctrl+S")
-
-        self.actionLoad_points = QAction(QIcon(resource_path("icons", "edit-add.svg")), "&Load points", self)
-        self.actionLoad_points.setToolTip("Load the points from the output file")
-        self.actionLoad_points.setShortcut("Ctrl+L")
-
-        self.actionRemove_points = QAction(QIcon(resource_path("icons", "edit-rem.svg")), "&Remove points", self)
-        self.actionRemove_points.setToolTip("Remove all points")
-        self.actionRemove_points.setStatusTip("")
-        self.actionRemove_points.setShortcut("Ctrl+R")
-
-        self.actionScreenshot = QAction(QIcon(resource_path("icons", "if_polaroids_1055003.svg")), "S&creenshot", self)
-        self.actionScreenshot.setToolTip("Take a screenshot and save the image")
-        self.actionScreenshot.setShortcut("Ctrl+T")
-
-        self.actionTutorial = QAction(QIcon(resource_path("icons", "if_document_1055071.svg")), "&Tutorial", self)
-        self.actionTutorial.setToolTip("Launch a simple tutorial")
-        self.actionTutorial.setShortcut("Ctrl+H")
-
-        self.actionAbout = QAction(QIcon(resource_path("icons", "Information_icon.svg")), "&About this program", self)
-        self.actionAbout_QT_libs = QAction(QIcon(resource_path("icons", "Information_icon.svg")), "About &QT libs", self)
-
-        self.menuMenu = self.menuBar.addMenu("&Menu")
+        self.menuMenu = self.menuBar.addMenu(CONFIG["menubar_menu"])
         self.menuMenu.addAction(self.actionSave_points)
         self.menuMenu.addAction(self.actionLoad_points)
         self.menuMenu.addAction(self.actionRemove_points)
         self.menuMenu.addAction(self.actionScreenshot)
 
-        self.menuDocumentation = self.menuBar.addMenu("Doc&umentation")
-        self.menuDocumentation.addAction(self.actionTutorial)
-
-        self.menuAbout = self.menuBar.addMenu("A&bout")
-        self.menuAbout.addAction(self.actionAbout)
-        self.menuAbout.addAction(self.actionAbout_QT_libs)
-
-    def _setup_toolbar(self):
-        self.mainToolBar = QToolBar(self)
-        self.addToolBar(Qt.TopToolBarArea, self.mainToolBar)
-        self.mainToolBar.addAction(self.actionLoad_points)
-        self.mainToolBar.addAction(self.actionRemove_points)
-        self.mainToolBar.addAction(self.actionSave_points)
-        self.mainToolBar.addAction(self.actionScreenshot)
+        self.menuAbout = self.menuBar.addMenu(CONFIG["menubar_about"])
+        self.menuAbout.addAction(self.about_action)
+        
 
     def _setup_statusbar(self):
         self.statusBar = QStatusBar(self)
         self.setStatusBar(self.statusBar)
 
-    def _connect_signals(self):
-        self.graphicsView.sendMousePosition.connect(self.my_mouse_event)
-
-        self.pushButton_imagefile.clicked.connect(self.on_pushButton_imagefile_clicked)
-        self.pushButton_outfile.clicked.connect(self.on_pushButton_outfile_clicked)
-        self.pushButton_select_gaussian.clicked.connect(self.on_pushButton_select_gaussian_clicked)
-        self.pushButton_select_random.clicked.connect(self.on_pushButton_select_random_clicked)
-        self.pushButton_random_c1.clicked.connect(self.on_pushButton_random_c1_clicked)
-        self.pushButton_random_c2.clicked.connect(self.on_pushButton_random_c2_clicked)
-        self.pushButton_saveexit.clicked.connect(self.on_pushButton_saveexit_clicked)
-        self.pushButton_point_color.clicked.connect(self.on_pushButton_point_color_clicked)
-        self.pushButton_corner_color.clicked.connect(self.on_pushButton_corner_color_clicked)
-
-        self.actionRemove_points.triggered.connect(self.on_actionRemove_points_triggered)
-        self.actionScreenshot.triggered.connect(self.on_actionScreenshot_triggered)
-        self.actionLoad_points.triggered.connect(self.on_actionLoad_points_triggered)
-        self.actionSave_points.triggered.connect(self.on_actionSave_points_triggered)
-        self.actionTutorial.triggered.connect(self.on_actionTutorial_triggered)
-        self.actionAbout.triggered.connect(self.on_actionAbout_triggered)
-        self.actionAbout_QT_libs.triggered.connect(self.on_actionAbout_QT_libs_triggered)
 
     # -----------------------------------------------------------------------
     # Métodos públicos (interface C++)
@@ -386,11 +548,6 @@ class MainWindow(QMainWindow):
             self.pushButton_outfile.setDisabled(False)
             self.lineEdit_outfile.setDisabled(False)
 
-    def set_parameter_progpath(self, ppath):
-        self.progpath = ppath
-
-    def set_parameter_progdir(self, pdir):
-        self.progdir = pdir
 
     # -----------------------------------------------------------------------
     # Lógica principal
@@ -452,8 +609,8 @@ class MainWindow(QMainWindow):
     def save_in_outfile(self):
         outfile = self.lineEdit_outfile.text()
         if len(outfile) == 0:
-            msg = "First you need select the output file."
-            QMessageBox.critical(self, "[ERROR]", msg)
+            msg = CONFIG["msg_error_need_select_output"]
+            QMessageBox.critical(self, CONFIG["msg_error"], msg)
             self.statusBar.showMessage(msg, 5000)
             return False
 
@@ -462,19 +619,21 @@ class MainWindow(QMainWindow):
                 for p in self.pointl:
                     fd.write("%d\t%d\n" % (p.y(), p.x()))
 
-            msg = "[OK] Wrote %d points in the file %s" % (len(self.pointl), outfile)
-            QMessageBox.information(self, "Saved", msg)
+            msg = CONFIG["msg_wrote_points"]+" %d\n%s" % (len(self.pointl), outfile) 
+            QMessageBox.information(self, CONFIG["msg_saved"], msg)
             self.statusBar.showMessage(msg, 5000)
             return True
         except OSError:
-            msg = "Error writing the file %s" % outfile
-            QMessageBox.critical(self, "[ERROR]", msg)
+            msg = CONFIG["msg_error_writing_output"]+" %s" % outfile
+            QMessageBox.critical(self, CONFIG["msg_error"], msg)
             self.statusBar.showMessage(msg, 5000)
             return False
 
     def load_points(self, string):
         if len(self.lineEdit_imagefile.text()) == 0:
-            QMessageBox.critical(self, "[ERROR]", "First need be selected the imagefile.")
+            QMessageBox.critical(   self, 
+                                    CONFIG["msg_error"], 
+                                    CONFIG["msg_error_need_select"] )
             return False
 
         inputfile = string
@@ -485,29 +644,32 @@ class MainWindow(QMainWindow):
                 origem = QDir.currentPath()
 
             inputfile = QFileDialog.getOpenFileName(
-                self, "Open points file", origem,
+                self, CONFIG["msg_open_points_file"], origem,
                 "listpoints file (*.listpoints);;Data file (*.dat);;All files (*.*)"
             )[0]
 
         if len(inputfile) == 0:
-            QMessageBox.critical(self, "[ERROR]", "No input file selected.")
+            QMessageBox.critical(self, CONFIG["msg_error"], CONFIG["msg_error_no_input"])
             return False
 
-        self.statusBar.showMessage("Loading the file: " + inputfile, 4000)
+        self.statusBar.showMessage(CONFIG["msg_loading_file"]+" " + inputfile, 4000) 
+
+
 
         try:
             with open(inputfile, "r") as f:
                 content = f.read()
         except OSError:
-            QMessageBox.critical(self, "[ERROR]", "Error reading the file %s" % inputfile)
+            QMessageBox.critical(self, CONFIG["msg_error"], CONFIG["msg_error_reading_file"] + " %s" % inputfile)
             return False
 
         tokens = content.split()
         N = len(tokens)
 
         if N < 2:
-            QMessageBox.critical(self, "[ERROR]",
-                "They were found %d elements in the input file (Minimum 2)." % N)
+            QMessageBox.critical(   self, 
+                                    CONFIG["msg_error"],
+                                    CONFIG["msg_error_found_elements"] + " %d" % N)
             return False
 
         if N % 2 != 0:
@@ -516,8 +678,8 @@ class MainWindow(QMainWindow):
         for i in range(0, N, 2):
             p = QPoint(int(tokens[i + 1]), int(tokens[i]))   # x=column, y=line
             if p.x() < 0 or p.y() < 0 or p.x() >= self.IMAGEW or p.y() >= self.IMAGEH:
-                QMessageBox.critical(self, "[ERROR]",
-                    "The point (%d,%d) cannot be added." % (p.y(), p.x()))
+                QMessageBox.critical(self, CONFIG["msg_error"],
+                    CONFIG["msg_error_point_added"]+" (%d,%d)" % (p.y(), p.x()))
             else:
                 self.pointl.append(p)
                 self.label_npoints.setText(str(len(self.pointl)))
@@ -536,7 +698,8 @@ class MainWindow(QMainWindow):
             origem = QDir.homePath()
 
         imagefile = QFileDialog.getOpenFileName(
-            self, "Open Image File", origem,
+            self, CONFIG["msg_open_image"], 
+            origem,
             "Images (*.png *.bmp *.jpg)"
         )[0]
 
@@ -548,12 +711,13 @@ class MainWindow(QMainWindow):
     def on_pushButton_outfile_clicked(self):
         if len(self.lineEdit_outfile.text()) != 0:
             origem = QFileInfo(self.lineEdit_outfile.text()).path() + \
-                     QDir.separator() + "listpointsdat.listpoints"
+                     QDir.separator() + "data.listpoints"
         else:
-            origem = QDir.homePath() + QDir.separator() + "listpointsdat.listpoints"
+            origem = QDir.homePath() + QDir.separator() + "data.listpoints"
 
         fileName = QFileDialog.getSaveFileName(
-            self, "Select or define an output filename", origem,
+            self, CONFIG["msg_select_output"], 
+            origem,
             "Output listpoints file (*.listpoints);;Output data file (*.dat);;All files (*.*)"
         )[0]
         self.lineEdit_outfile.setText(fileName)
@@ -561,7 +725,7 @@ class MainWindow(QMainWindow):
     def on_pushButton_select_gaussian_clicked(self):
         self.NCLICKS = 0
         self.GAUSIAN_CLICKED = True
-        self.statusBar.showMessage("Select the central point", 3000)
+        self.statusBar.showMessage(CONFIG["msg_select_central_point"], 3000)
 
     def on_pushButton_select_random_clicked(self):
         N  = self.spinBox_random_npoints.value()
@@ -583,17 +747,17 @@ class MainWindow(QMainWindow):
 
         self.plot_point(p1, self.pen_corner)
         self.plot_point(p2, self.pen_corner)
-        self.statusBar.showMessage("Points selected", 3000)
+        self.statusBar.showMessage(CONFIG["msg_points_selected"], 3000)
 
     def on_pushButton_random_c1_clicked(self):
         self.NCLICKS = 0
         self.RANDOM_C1_CLICKED = True
-        self.statusBar.showMessage("Select a corner point 1", 3000)
+        self.statusBar.showMessage(CONFIG["msg_select_corner1"], 3000)
 
     def on_pushButton_random_c2_clicked(self):
         self.NCLICKS = 0
         self.RANDOM_C2_CLICKED = True
-        self.statusBar.showMessage("Select a corner point 2", 3000)
+        self.statusBar.showMessage(CONFIG["msg_select_corner2"], 3000)
 
     def on_pushButton_saveexit_clicked(self):
         if self.save_in_outfile():
@@ -632,7 +796,9 @@ class MainWindow(QMainWindow):
             origem = QDir.homePath() + QDir.separator() + "screenshot.bmp"
 
         fileName = QFileDialog.getSaveFileName(
-            self, "Define an output [PNG,BMP,JPG] filename", origem,
+            self, 
+            "Define an output [PNG,BMP,JPG] filename", 
+            origem,
             "Output image file (*.png *.bmp *.jpg)"
         )[0]
 
@@ -648,10 +814,11 @@ class MainWindow(QMainWindow):
         self.scene.render(painter)
         painter.end()
 
+
         if image.save(fileName, None, 100):
-            self.statusBar.showMessage("Wrote the image file: " + fileName, 10000)
+            self.statusBar.showMessage(CONFIG["msg_wrote_file"]+" " + fileName, 10000)
         else:
-            self.statusBar.showMessage("ERROR:: Could not write the image file: " + fileName, 10000)
+            self.statusBar.showMessage(CONFIG["msg_error_not_write"]+" " + fileName, 10000)
 
     def on_actionLoad_points_triggered(self):
         self.load_points("")
@@ -659,25 +826,6 @@ class MainWindow(QMainWindow):
     def on_actionSave_points_triggered(self):
         self.save_in_outfile()
 
-    def on_actionTutorial_triggered(self):
-        from PyQt5.QtCore import QUrl
-        from PyQt5.QtGui import QDesktopServices
-        if self.progdir:
-            path = os.path.join(self.progdir, "..", "share", "doc",
-                                "listpoints", "listpoints.pdf")
-            QDesktopServices.openUrl(QUrl(path, QUrl.TolerantMode))
-
-    def on_actionAbout_triggered(self):
-        QMessageBox.about(
-            self, "About the program",
-            "<center><b>ListPoints</b></center><br>"
-            "<b>license:</b> GPL<br>"
-            "<b>author:</b> Fernando Pujaico Rivera<br>"
-            "<b>email:</b> fernando.pujaico.rivera@gmail.com<br>"
-        )
-
-    def on_actionAbout_QT_libs_triggered(self):
-        QMessageBox.aboutQt(self, "Qt :: a cross-platform application framework")
 
     # -----------------------------------------------------------------------
     # Slot — evento de rato
@@ -714,11 +862,13 @@ class MainWindow(QMainWindow):
                     self.plot_point(p, self.pen_point)
 
                 self.plot_point(p0, self.pen_corner)
-                self.statusBar.showMessage("Gaussian clicked done", 3000)
+                self.statusBar.showMessage(CONFIG["msg_gaussian_clicked"], 3000)
             else:
-                QMessageBox.warning(self, "Warning",
-                    "You need select the point inside the image.")
+                QMessageBox.warning(self, 
+                                    CONFIG["msg_warning"],
+                                    CONFIG["msg_need_select_inside"])
 
+    
         # --- Random corner 1 ---
         if self.RANDOM_C1_CLICKED and self.NCLICKS > 0:
             if _inside(p0):
@@ -726,10 +876,11 @@ class MainWindow(QMainWindow):
                 self.RANDOM_C1_CLICKED = False
                 self.spinBox_random_c1_column.setValue(p0.x())
                 self.spinBox_random_c1_line.setValue(p0.y())
-                self.statusBar.showMessage("Corner 1 selected", 3000)
+                self.statusBar.showMessage(CONFIG["msg_random_corner1_selected"], 3000)
             else:
-                QMessageBox.warning(self, "Warning",
-                    "You need select the point inside the image.")
+                QMessageBox.warning(self, 
+                                    CONFIG["msg_warning"],
+                                    CONFIG["msg_need_select_inside"])
 
         # --- Random corner 2 ---
         if self.RANDOM_C2_CLICKED and self.NCLICKS > 0:
@@ -738,24 +889,56 @@ class MainWindow(QMainWindow):
                 self.RANDOM_C2_CLICKED = False
                 self.spinBox_random_c2_column.setValue(p0.x())
                 self.spinBox_random_c2_line.setValue(p0.y())
-                self.statusBar.showMessage("Corner 2 selected", 3000)
+                self.statusBar.showMessage(CONFIG["msg_random_corner2_selected"], 3000)
             else:
-                QMessageBox.warning(self, "Warning",
-                    "You need select the point inside the image.")
+                QMessageBox.warning(self, 
+                                    CONFIG["msg_warning"],
+                                    CONFIG["msg_need_select_inside"])
 
 
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 def main():
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+       
+
+    extras=""
+    
+    create_desktop_directory()    
+    create_desktop_menu()
+    create_desktop_file(os.path.join("~",".local","share","applications"), 
+                        program_name=about.__program_points__,
+                        extras=extras)
+    
+    for n in range(len(sys.argv)):
+        if sys.argv[n] == "--autostart":
+            create_desktop_directory(overwrite = True)
+            create_desktop_menu(overwrite = True)
+            create_desktop_file(os.path.join("~",".config","autostart"), 
+                                overwrite=True, 
+                                program_name=about.__program_points__,
+                                extras=extras)
+            return
+        if sys.argv[n] == "--applications":
+            create_desktop_directory(overwrite = True)
+            create_desktop_menu(overwrite = True)
+            create_desktop_file(os.path.join("~",".local","share","applications"), 
+                                overwrite=True, 
+                                program_name=about.__program_points__,
+                                extras=extras)
+            return
+
+    
     app = QApplication(sys.argv)
+    app.setApplicationName(about.__program_points__) 
 
     # Suporte a argumentos de linha de comando idêntico ao main.cpp
-    import argparse
+    out_default_path = os.path.join(os.path.expanduser("~"), "default.listpoints")
+    
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--rootimage",     default="")
-    parser.add_argument("--outfile",       default=os.path.join(os.path.expanduser("~"),
-                                                                  "listpointsdat.listpoints"))
+    parser.add_argument("--outfile",       default=out_default_path)
     parser.add_argument("--dis-rootimage", action="store_true")
     parser.add_argument("--en-rootimage",  action="store_true")
     parser.add_argument("--dis-outfile",   action="store_true")
@@ -778,8 +961,6 @@ def main():
         dis_outfile = 1
 
     window = MainWindow()
-    window.set_parameter_progpath(os.path.abspath(sys.argv[0]))
-    window.set_parameter_progdir(os.path.dirname(os.path.abspath(sys.argv[0])))
     window.set_parameter_rootimage(args.rootimage, dis_rootimage)
     window.set_parameter_outfile(args.outfile, dis_outfile)
 

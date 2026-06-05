@@ -114,9 +114,6 @@ class MainWindow(QMainWindow):
             os.startfile(filepath)
         elif os.name == 'posix':  # Linux/macOS
             subprocess.run(['xdg-open', filepath])
-    
-    def open_url_usage_editor(self):
-        QDesktopServices.openUrl(QUrl(CONFIG_GPT["usage"]))
         
     def open_configure_editor(self):
         self._open_file_in_text_editor(CONFIG_PATH)
