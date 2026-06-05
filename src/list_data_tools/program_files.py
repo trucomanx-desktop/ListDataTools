@@ -464,14 +464,16 @@ class MainWindow(QMainWindow):
 
 def main():
     signal.signal(signal.SIGINT, signal.SIG_DFL)
-       
+    
+    icon_path=resource_path("icons", "listfiles.svg")
     extras="" 
     
     create_desktop_directory()    
     create_desktop_menu()
     create_desktop_file(os.path.join("~",".local","share","applications"), 
                         program_name=about.__program_files__,
-                        extras=extras)
+                        extras=extras,
+                        icon_path=icon_path)
     
     for n in range(len(sys.argv)):
         if sys.argv[n] == "--autostart":
@@ -480,7 +482,8 @@ def main():
             create_desktop_file(os.path.join("~",".config","autostart"), 
                                 overwrite=True, 
                                 program_name=about.__program_files__,
-                                extras=extras)
+                                extras=extras,
+                                icon_path=icon_path)
             return
         if sys.argv[n] == "--applications":
             create_desktop_directory(overwrite = True)
@@ -488,7 +491,8 @@ def main():
             create_desktop_file(os.path.join("~",".local","share","applications"), 
                                 overwrite=True, 
                                 program_name=about.__program_files__,
-                                extras=extras)
+                                extras=extras,
+                                icon_path=icon_path)
             return
     
     app = QApplication(sys.argv)

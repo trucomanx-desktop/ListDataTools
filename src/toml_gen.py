@@ -57,7 +57,7 @@ dependencies = [
 
 [project.scripts]
 "{__program_files__}" = "{__package__}.program_files:main"
-"{__program_files__}" = "{__package__}.program_points:main"
+"{__program_points__}" = "{__package__}.program_points:main"
 
 [tool.setuptools]
 packages = ["{__package__}", "{__package__}.modules"]
