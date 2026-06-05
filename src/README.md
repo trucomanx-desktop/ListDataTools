@@ -23,6 +23,7 @@ To start, use the command below:
 
 ```bash
 ldt-files
+ldt-points
 ```
 ## 2. More information
 
