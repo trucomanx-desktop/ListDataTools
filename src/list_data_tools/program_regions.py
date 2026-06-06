@@ -1114,7 +1114,7 @@ def main():
        
 
     icon_path=resource_path("icons", "listregions.svg")
-
+    
     extras=""
     
     create_desktop_directory()    
@@ -1143,7 +1143,6 @@ def main():
                                 extras=extras,
                                 icon_path=icon_path)
             return
-    
 
     parser = argparse.ArgumentParser(prog=about.__program_regions__)
     parser.add_argument("--rootimage",     default="")

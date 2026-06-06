@@ -6,6 +6,8 @@ A set of program to list data.
 
 ![logo](screenshot_points.png)
 
+![logo](screenshot_regions.png)
+
 ## 1. Installing
 
 To install the package from [PyPI](https://pypi.org/project/list_data_tools/), follow the instructions below:
