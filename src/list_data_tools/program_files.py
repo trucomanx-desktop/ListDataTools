@@ -79,13 +79,6 @@ CONFIG=configure.load_config(CONFIG_PATH)
 # ---------------------------------------
 
 
-
-# Constantes (ajuste conforme seu projeto)
-APP_TARGET = "ListFiles"
-APP_VERSION = "1.0"
-APP_HOMEPAGE = "https://github.com/seuusuario/listfiles"
-
-
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
