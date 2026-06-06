@@ -12,6 +12,7 @@ from list_data_tools.about import (
     __package__,
     __program_files__,
     __program_points__,
+    __program_regions__,
     __author__,
     __email__,
     __description__,
@@ -58,6 +59,7 @@ dependencies = [
 [project.scripts]
 "{__program_files__}" = "{__package__}.program_files:main"
 "{__program_points__}" = "{__package__}.program_points:main"
+"{__program_regions__}" = "{__package__}.program_regions:main"
 
 [tool.setuptools]
 packages = ["{__package__}", "{__package__}.modules"]

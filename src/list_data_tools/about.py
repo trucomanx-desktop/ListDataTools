@@ -1,6 +1,6 @@
 # about.py
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 __package__ = "list_data_tools"
 __program_files__ = "ldt-files"
 __program_points__ = "ldt-points"
