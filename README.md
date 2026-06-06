@@ -24,6 +24,7 @@ To start, use the command below:
 ```bash
 ldt-files
 ldt-points
+ldt-regions
 ```
 ## 2. More information
 
